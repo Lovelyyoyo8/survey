@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, make_response
 import pandas as pd
 import matplotlib.pyplot as plt
-from io import StringIO
+from io import StringIO, BytesIO
+from matplotlib.backends.backend_pdf import PdfPages
 
 app = Flask(__name__)
 
@@ -88,6 +89,50 @@ def visualization():
     plt.savefig('static/pie_chart.png')
 
     return render_template('visualization.html')
+
+
+@app.route('/export_excel')
+def export_excel():
+    global survey_data
+
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    survey_data.to_excel(writer, sheet_name='Survey Data', index=False)
+    writer.save()
+
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=survey_data.xlsx'
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    return response
+
+
+@app.route('/export_pdf')
+def export_pdf():
+    global survey_data
+
+    pdf_output = BytesIO()
+    pdf_pages = PdfPages(pdf_output)
+
+    plt.figure(figsize=(8.5, 11))   #Letter size paper
+    plt.title('Data Analysis Plot')
+    pdf_pages.savefig()
+
+    fig, ax = plt.subplots(figsize=(8.5, 11))
+    ax.axis('off')
+    plt.title('Summary Table')
+    pdf_pages.savefig()
+
+    pdf_pages.close()
+
+    pdf_output.seek(0)
+    response = make_response(pdf_output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=survey_report.pdf'
+    response.headers['Content-Type'] = 'application/pdf'
+
+    return response
 
 
 if __name__ == '__main__':
