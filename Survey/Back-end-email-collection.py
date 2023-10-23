@@ -21,7 +21,6 @@ def submit():
         question = field
         response = request.form[field]
 
-        # Append data to DataFrame
         survey_data = survey_data.append({'Question': question, 'Response': response}, ignore_index=True)
 
     formatted_csv = StringIO()
@@ -64,6 +63,31 @@ def summary():
     summary_html = summary_stats.to_html(classes='table table-bordered', justify='center')
 
     return render_template('summary.html', summary_table=summary_html)
+
+
+@app.route('/analysis')
+def analysis():
+    global survey_data
+
+    analysis_results = survey_data.groupby('Question')['Response'].mean()
+
+    return render_template('analysis.html', analysis_results=analysis_results)
+
+
+@app.route('/visualization')
+def visualization():
+    global survey_data
+
+    response_counts = survey_data['Response'].value_counts()
+
+    plt.figure(figsize=(8, 8))
+    plt.pie(response_counts, labels=response_counts.index, autopct='%1.1f%%', startangle=140)
+    plt.title('Survey Response Distribution')
+    plt.tight_layout()
+
+    plt.savefig('static/pie_chart.png')
+
+    return render_template('visualization.html')
 
 
 if __name__ == '__main__':
