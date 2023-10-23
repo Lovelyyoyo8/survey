@@ -21,6 +21,7 @@ def submit():
         question = field
         response = request.form[field]
 
+        # Append data to DataFrame
         survey_data = survey_data.append({'Question': question, 'Response': response}, ignore_index=True)
 
     formatted_csv = StringIO()
@@ -52,6 +53,17 @@ def chart():
     plt.savefig('static/survey_chart.png')
 
     return render_template('chart.html')
+
+
+@app.route('/summary')
+def summary():
+    global survey_data
+
+    summary_stats = survey_data.groupby('Question')['Response'].value_counts().unstack().fillna(0)
+
+    summary_html = summary_stats.to_html(classes='table table-bordered', justify='center')
+
+    return render_template('summary.html', summary_table=summary_html)
 
 
 if __name__ == '__main__':
