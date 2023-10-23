@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request
 import pandas as pd
 import matplotlib.pyplot as plt
+from io import StringIO
 
 app = Flask(__name__)
 
-# Create an empty DataFrame to store survey data
 survey_data = pd.DataFrame(columns=['Question', 'Response'])
 
 
@@ -17,16 +17,20 @@ def index():
 def submit():
     global survey_data
 
-    # Get user inputs from the form
     for field in request.form:
         question = field
         response = request.form[field]
 
-        # Append data to DataFrame
         survey_data = survey_data.append({'Question': question, 'Response': response}, ignore_index=True)
 
-    # Save data to CSV
-    survey_data.to_csv('survey_data.csv', index=False)
+    formatted_csv = StringIO()
+    survey_data.to_csv(formatted_csv, index=False)
+    formatted_csv.seek(0)
+
+    formatted_content = formatted_csv.getvalue().replace('\n', '\n,<span style="font-family:Arial; font-size:14px; text-align:center;">')
+
+    with open('formatted_survey_data.csv', 'w') as f:
+        f.write(formatted_content)
 
     return 'Response recorded successfully!'
 
@@ -35,10 +39,8 @@ def submit():
 def chart():
     global survey_data
 
-    # Read data from CSV
-    survey_data = pd.read_csv('survey_data.csv')
+    survey_data = pd.read_csv('formatted_survey_data.csv')
 
-    # Create a bar chart
     plt.figure(figsize=(10, 6))
     plt.bar(survey_data['Question'], survey_data['Response'])
     plt.xlabel('Question')
@@ -47,7 +49,6 @@ def chart():
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    # Save the chart as an image file
     plt.savefig('static/survey_chart.png')
 
     return render_template('chart.html')
